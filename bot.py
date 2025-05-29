@@ -40,6 +40,8 @@ async def kick_member(member, reason):
     except discord.HTTPException as e:
         print(f"{get_log_prefix()} ERROR: Failed to kick {member.name} (ID: {member.id}): {e}")
 
+
+
 # --- Core Logic Task ---
 async def kick_if_not_verified(member: discord.Member):
     """
@@ -178,21 +180,23 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 
 @client.event
 async def on_member_remove(member: discord.Member):
-    if WELCOME_CHANNEL_ID != 0:
-        welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
-        if welcome_channel and isinstance(welcome_channel, discord.TextChannel):
-            try:
-                goodbye_message_formatted = f"{GOODBYE_MESSAGE}"
-                await welcome_channel.send(goodbye_message_formatted)
-                print(f"{get_log_prefix()} Sent goodbye message for {member.name} (ID: {member.id}) to channel ID {WELCOME_CHANNEL_ID}.")
-            except discord.Forbidden:
-                print(f"{get_log_prefix()} ERROR: Bot lacks permission to send messages to welcome channel ID {WELCOME_CHANNEL_ID}.")
-            except discord.HTTPException as e:
-                print(f"{get_log_prefix()} ERROR: Failed to send goodbye message for {member.name} (ID: {member.id}): {e}")
+    # If a member leaves or is kicked, and they were already verified, send a goodbye message.
+    if member.id not in pending_verification_tasks:
+        if WELCOME_CHANNEL_ID != 0:
+            welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
+            if welcome_channel and isinstance(welcome_channel, discord.TextChannel):
+                try:
+                    goodbye_message_formatted = f"{GOODBYE_MESSAGE}"
+                    await welcome_channel.send(goodbye_message_formatted)
+                    print(f"{get_log_prefix()} Sent goodbye message for {member.name} (ID: {member.id}) to channel ID {WELCOME_CHANNEL_ID}.")
+                except discord.Forbidden:
+                    print(f"{get_log_prefix()} ERROR: Bot lacks permission to send messages to welcome channel ID {WELCOME_CHANNEL_ID}.")
+                except discord.HTTPException as e:
+                    print(f"{get_log_prefix()} ERROR: Failed to send goodbye message for {member.name} (ID: {member.id}): {e}")
+            else:
+                print(f"{get_log_prefix()} ERROR: Welcome channel ID {WELCOME_CHANNEL_ID} not found or is not a text channel.")
         else:
-            print(f"{get_log_prefix()} ERROR: Welcome channel ID {WELCOME_CHANNEL_ID} not found or is not a text channel.")
-    else:
-        print(f"{get_log_prefix()} Welcome channel ID not configured. Skipping goodbye message for {member.name} (ID: {member.id}).")
+            print(f"{get_log_prefix()} Welcome channel ID not configured. Skipping goodbye message for {member.name} (ID: {member.id}).")
     # If a member leaves or is kicked, and they had a pending verification task, cancel it.
     if member.id in pending_verification_tasks:
         task = pending_verification_tasks.pop(member.id, None)
