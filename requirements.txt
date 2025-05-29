@@ -1,0 +1,6 @@
+# List all required python modules below
+discord.py>=2.0.0
+
+# python-dotenv is useful for local development if you use a .env file
+# but not strictly needed if you set environment variables directly in Docker/AWS.
+# python-dotenv
