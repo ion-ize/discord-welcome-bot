@@ -10,6 +10,9 @@ WELCOME_CHANNEL_ID = int(os.getenv('WELCOME_CHANNEL_ID', '0')) # Channel ID to s
 VERIFIED_ROLE_NAME = os.getenv('VERIFIED_ROLE_NAME', 'verified') # Name of the role to check for
 VERIFICATION_TIMEOUT_SECONDS = int(os.getenv('VERIFICATION_TIMEOUT_SECONDS', '600')) # e.g., 300 for 5 minutes
 MIN_ACCOUNT_AGE_DAYS = int(os.getenv('MIN_ACCOUNT_AGE_DAYS', '90')) # e.g., 90 for 3 months
+WELCOME_MESSAGE = os.getenv('WELCOME_MESSAGE', 'Welcome {member.mention} to {guild.name}!}') # Welcome message customized in env variable
+GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '{member.name} just left {guild.name}.') # Goodbye message customized in env variable
+
 
 # --- Bot Setup ---
 intents = discord.Intents.default()
@@ -31,11 +34,11 @@ async def kick_member(member, reason):
     """Helper function to kick a member and log the action."""
     try:
         await member.kick(reason=reason)
-        print(f"{get_log_prefix()} Kicked member {member.name}#{member.discriminator} (ID: {member.id}). Reason: {reason}")
+        print(f"{get_log_prefix()} Kicked member {member.name} (ID: {member.id}). Reason: {reason}")
     except discord.Forbidden:
-        print(f"{get_log_prefix()} ERROR: Bot lacks permission to kick {member.name}#{member.discriminator} (ID: {member.id}).")
+        print(f"{get_log_prefix()} ERROR: Bot lacks permission to kick {member.name} (ID: {member.id}).")
     except discord.HTTPException as e:
-        print(f"{get_log_prefix()} ERROR: Failed to kick {member.name}#{member.discriminator} (ID: {member.id}): {e}")
+        print(f"{get_log_prefix()} ERROR: Failed to kick {member.name} (ID: {member.id}): {e}")
 
 # --- Core Logic Task ---
 async def kick_if_not_verified(member: discord.Member):
@@ -52,7 +55,7 @@ async def kick_if_not_verified(member: discord.Member):
     if member.id not in pending_verification_tasks:
         # Task was likely cancelled because the user was verified or left.
         # Or this is a stray task somehow.
-        print(f"{get_log_prefix()} Verification task for {member.name}#{member.discriminator} (ID: {member.id}) no longer relevant or already handled.")
+        print(f"{get_log_prefix()} Verification task for {member.name} (ID: {member.id}) no longer relevant or already handled.")
         return
 
     try:
@@ -71,20 +74,20 @@ async def kick_if_not_verified(member: discord.Member):
                 print(f"{get_log_prefix()} Member {fresh_member.name}#{fresh_member.discriminator} (ID: {fresh_member.id}) was already verified by timeout check. Welcome should have been sent.")
         else:
             # Member left the server before timeout
-            print(f"{get_log_prefix()} Member {member.name}#{member.discriminator} (ID: {member.id}) left before verification timeout.")
+            print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) left before verification timeout.")
 
     except discord.NotFound:
         # Member left the server or was kicked by other means before timeout
-        print(f"{get_log_prefix()} Member {member.name}#{member.discriminator} (ID: {member.id}) not found. Likely left or was kicked before verification timeout.")
+        print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) not found. Likely left or was kicked before verification timeout.")
     except discord.Forbidden:
-        print(f"{get_log_prefix()} ERROR: Bot lacks permission to fetch or kick member {member.name}#{member.discriminator} (ID: {member.id}) during timeout check.")
+        print(f"{get_log_prefix()} ERROR: Bot lacks permission to fetch or kick member {member.name} (ID: {member.id}) during timeout check.")
     except Exception as e:
-        print(f"{get_log_prefix()} ERROR: An unexpected error occurred in kick_if_not_verified for {member.name}#{member.discriminator} (ID: {member.id}): {e}")
+        print(f"{get_log_prefix()} ERROR: An unexpected error occurred in kick_if_not_verified for {member.name} (ID: {member.id}): {e}")
     finally:
         # Clean up the task from the pending dictionary
         if member.id in pending_verification_tasks:
             del pending_verification_tasks[member.id]
-            print(f"{get_log_prefix()} Removed verification task for {member.name}#{member.discriminator} (ID: {member.id}) after timeout check.")
+            print(f"{get_log_prefix()} Removed verification task for {member.name} (ID: {member.id}) after timeout check.")
 
 
 # --- Event Handlers ---
@@ -100,7 +103,7 @@ async def on_ready():
 
 @client.event
 async def on_member_join(member: discord.Member):
-    print(f"{get_log_prefix()} Member joined: {member.name}#{member.discriminator} (ID: {member.id}, Account Created: {member.created_at})")
+    print(f"{get_log_prefix()} Member joined: {member.name} (ID: {member.id}, Account Created: {member.created_at})")
 
     # 1. Check account age
     account_age = datetime.now(timezone.utc) - member.created_at
@@ -112,14 +115,14 @@ async def on_member_join(member: discord.Member):
     # 2. If account age is okay, start monitoring for verification
     # Check if a task already exists (e.g., rapid rejoin) - though unlikely to be an issue with member object identity.
     if member.id in pending_verification_tasks:
-        print(f"{get_log_prefix()} Warning: Verification task already exists for {member.name}#{member.discriminator} (ID: {member.id}). This might indicate a rapid rejoin or an issue.")
+        print(f"{get_log_prefix()} Warning: Verification task already exists for {member.name} (ID: {member.id}). This might indicate a rapid rejoin or an issue.")
         # Optionally, cancel the old task and start a new one, or just let it be.
         # For simplicity, we'll let the old one run its course or be cancelled by on_member_update.
 
     # Create a task that will kick the member if they are not verified in time
     task = asyncio.create_task(kick_if_not_verified(member))
     pending_verification_tasks[member.id] = task
-    print(f"{get_log_prefix()} Scheduled verification timeout task for {member.name}#{member.discriminator} (ID: {member.id}). Timeout: {VERIFICATION_TIMEOUT_SECONDS}s.")
+    print(f"{get_log_prefix()} Scheduled verification timeout task for {member.name} (ID: {member.id}). Timeout: {VERIFICATION_TIMEOUT_SECONDS}s.")
 
 
 @client.event
@@ -142,7 +145,7 @@ async def on_member_update(before: discord.Member, after: discord.Member):
     is_verified_now = verified_role in after.roles
 
     if not was_verified_before and is_verified_now:
-        print(f"{get_log_prefix()} Member {after.name}#{after.discriminator} (ID: {after.id}) received the '{VERIFIED_ROLE_NAME}' role.")
+        print(f"{get_log_prefix()} Member {after.name} (ID: {after.id}) received the '{VERIFIED_ROLE_NAME}' role.")
 
         # Cancel the pending kick task for this member
         task = pending_verification_tasks.pop(after.id, None)
@@ -151,9 +154,9 @@ async def on_member_update(before: discord.Member, after: discord.Member):
             try:
                 await task # Wait for task to acknowledge cancellation
             except asyncio.CancelledError:
-                print(f"{get_log_prefix()} Successfully cancelled verification timeout task for {after.name}#{after.discriminator} (ID: {after.id}).")
+                print(f"{get_log_prefix()} Successfully cancelled verification timeout task for {after.name} (ID: {after.id}).")
         else:
-            print(f"{get_log_prefix()} Warning: No pending verification task found to cancel for {after.name}#{after.discriminator} (ID: {after.id}) upon role update. Welcome will still be sent.")
+            print(f"{get_log_prefix()} Warning: No pending verification task found to cancel for {after.name} (ID: {after.id}) upon role update. Welcome will still be sent.")
 
 
         # Send welcome message
@@ -161,21 +164,35 @@ async def on_member_update(before: discord.Member, after: discord.Member):
             welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
             if welcome_channel and isinstance(welcome_channel, discord.TextChannel):
                 try:
-                    # Customize your welcome message here
-                    welcome_message = f"🎉 Welcome to the server, {after.mention}! You are now verified. Enjoy your stay! 🎉"
-                    await welcome_channel.send(welcome_message)
-                    print(f"{get_log_prefix()} Sent welcome message for {after.name}#{after.discriminator} (ID: {after.id}) to channel ID {WELCOME_CHANNEL_ID}.")
+                    welcome_message_formatted = f"{WELCOME_MESSAGE}"
+                    await welcome_channel.send(welcome_message_formatted)
+                    print(f"{get_log_prefix()} Sent welcome message for {after.name} (ID: {after.id}) to channel ID {WELCOME_CHANNEL_ID}.")
                 except discord.Forbidden:
                     print(f"{get_log_prefix()} ERROR: Bot lacks permission to send messages to welcome channel ID {WELCOME_CHANNEL_ID}.")
                 except discord.HTTPException as e:
-                    print(f"{get_log_prefix()} ERROR: Failed to send welcome message for {after.name}#{after.discriminator} (ID: {after.id}): {e}")
+                    print(f"{get_log_prefix()} ERROR: Failed to send welcome message for {after.name} (ID: {after.id}): {e}")
             else:
                 print(f"{get_log_prefix()} ERROR: Welcome channel ID {WELCOME_CHANNEL_ID} not found or is not a text channel.")
         else:
-            print(f"{get_log_prefix()} Welcome channel ID not configured. Skipping welcome message for {after.name}#{after.discriminator} (ID: {after.id}).")
+            print(f"{get_log_prefix()} Welcome channel ID not configured. Skipping welcome message for {after.name} (ID: {after.id}).")
 
 @client.event
 async def on_member_remove(member: discord.Member):
+    if WELCOME_CHANNEL_ID != 0:
+        welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
+        if welcome_channel and isinstance(welcome_channel, discord.TextChannel):
+            try:
+                goodbye_message_formatted = f"{GOODBYE_MESSAGE}"
+                await welcome_channel.send(goodbye_message_formatted)
+                print(f"{get_log_prefix()} Sent goodbye message for {member.name} (ID: {member.id}) to channel ID {WELCOME_CHANNEL_ID}.")
+            except discord.Forbidden:
+                print(f"{get_log_prefix()} ERROR: Bot lacks permission to send messages to welcome channel ID {WELCOME_CHANNEL_ID}.")
+            except discord.HTTPException as e:
+                print(f"{get_log_prefix()} ERROR: Failed to send goodbye message for {member.name} (ID: {member.id}): {e}")
+        else:
+            print(f"{get_log_prefix()} ERROR: Welcome channel ID {WELCOME_CHANNEL_ID} not found or is not a text channel.")
+    else:
+        print(f"{get_log_prefix()} Welcome channel ID not configured. Skipping goodbye message for {member.name} (ID: {member.id}).")
     # If a member leaves or is kicked, and they had a pending verification task, cancel it.
     if member.id in pending_verification_tasks:
         task = pending_verification_tasks.pop(member.id, None)
@@ -185,7 +202,7 @@ async def on_member_remove(member: discord.Member):
                 await task
             except asyncio.CancelledError:
                 pass # Expected
-            print(f"{get_log_prefix()} Member {member.name}#{member.discriminator} (ID: {member.id}) left/was kicked. Cancelled their pending verification task.")
+            print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) left/was kicked. Cancelled their pending verification task.")
 
 
 # --- Main Execution ---
@@ -203,4 +220,3 @@ if __name__ == "__main__":
             print(f"{get_log_prefix()} ERROR: Login failed. Check if DISCORD_BOT_TOKEN is correct.")
         except Exception as e:
             print(f"{get_log_prefix()} ERROR: An unexpected error occurred while trying to run the bot: {e}")
-
