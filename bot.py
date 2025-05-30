@@ -96,6 +96,10 @@ async def on_ready():
     if MENTION_CHANNEL_NAME:
         print(f"{get_log_prefix()} Will attempt to mention channel '{MENTION_CHANNEL_NAME}' in welcome messages if placeholder is used.")
 
+    # Set bot's online status and activity
+    await client.change_presence(activity=discord.Game(name="Monitoring new members"), status=discord.Status.online)
+    print(f"{get_log_prefix()} Bot status set to Online with activity 'Monitoring new members'.")
+
 
 @client.event
 async def on_member_join(member: discord.Member):
