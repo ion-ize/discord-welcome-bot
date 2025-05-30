@@ -15,12 +15,15 @@ RUN pip install --no-cache-dir --trusted-host pypi.python.org -r requirements.tx
 # Copy the bot code into the container at /app
 COPY bot.py .
 
-# Set environment variables (these will be overridden by AWS settings or docker run -e flags)
+# Set environment variables (these will be overridden by docker run -e flags)
 # It's good practice to set defaults or placeholders here if any.
 ENV WELCOME_CHANNEL_ID="0"
 ENV VERIFIED_ROLE_NAME="verified"
 ENV VERIFICATION_TIMEOUT_SECONDS="300"
 ENV MIN_ACCOUNT_AGE_DAYS="90"
+ENV BOT_STATUS_MESSAGE=""
+ENV WELCOME_MESSAGE="Welcome {member_mention} to {guild_name}!"
+ENV GOODBYE_MESSAGE="{member_name} just left {guild_name}."
 # DISCORD_BOT_TOKEN should NOT be hardcoded here. It must be provided at runtime.
 
 # Inform Docker that the container listens on a specific port (optional, informational)

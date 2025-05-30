@@ -13,11 +13,11 @@ MIN_ACCOUNT_AGE_DAYS = int(os.getenv('MIN_ACCOUNT_AGE_DAYS', '90')) # e.g., 90 f
 
 # Example WELCOME_MESSAGE: "Welcome {member_mention} to {guild_name}! Please check out {specific_channel_mention}."
 # If {specific_channel_mention} is used, also set MENTION_CHANNEL_NAME.
-WELCOME_MESSAGE = os.getenv('WELCOME_MESSAGE', 'Welcome {member_mention} to {guild_name}!')
+WELCOME_MESSAGE = os.getenv('WELCOME_MESSAGE', 'Welcome {member_mention} to **{guild_name}**!')
 MENTION_CHANNEL_NAME = os.getenv('MENTION_CHANNEL_NAME', None) # Name of a specific channel to mention
 
 # Example GOODBYE_MESSAGE: "{member_name} has left {guild_name}."
-GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '{member_name} just left {guild_name}.')
+GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '**{member_name}** just left **{guild_name}**.')
 
 # Bot status
 BOT_STATUS_MESSAGE = os.getenv('BOT_STATUS_MESSAGE', 'Monitoring new members') # Default status message
