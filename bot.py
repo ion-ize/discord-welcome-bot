@@ -10,9 +10,14 @@ WELCOME_CHANNEL_ID = int(os.getenv('WELCOME_CHANNEL_ID', '0')) # Channel ID to s
 VERIFIED_ROLE_NAME = os.getenv('VERIFIED_ROLE_NAME', 'verified') # Name of the role to check for
 VERIFICATION_TIMEOUT_SECONDS = int(os.getenv('VERIFICATION_TIMEOUT_SECONDS', '600')) # e.g., 300 for 5 minutes
 MIN_ACCOUNT_AGE_DAYS = int(os.getenv('MIN_ACCOUNT_AGE_DAYS', '90')) # e.g., 90 for 3 months
-WELCOME_MESSAGE = os.getenv('WELCOME_MESSAGE', 'Welcome {member.mention} to {guild.name}!}') # Welcome message customized in env variable
-GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '{member.name} just left {guild.name}.') # Goodbye message customized in env variable
 
+# Example WELCOME_MESSAGE: "Welcome {member_mention} to {guild_name}! Please check out {specific_channel_mention}."
+# If {specific_channel_mention} is used, also set MENTION_CHANNEL_NAME.
+WELCOME_MESSAGE = os.getenv('WELCOME_MESSAGE', 'Welcome {member_mention} to {guild_name}!')
+MENTION_CHANNEL_NAME = os.getenv('MENTION_CHANNEL_NAME', None) # Name of a specific channel to mention
+
+# Example GOODBYE_MESSAGE: "{member_name} has left {guild_name}."
+GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '{member_name} just left {guild_name}.')
 
 # --- Bot Setup ---
 intents = discord.Intents.default()
@@ -166,8 +171,25 @@ async def on_member_update(before: discord.Member, after: discord.Member):
             welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
             if welcome_channel and isinstance(welcome_channel, discord.TextChannel):
                 try:
-                    welcome_message_formatted = f"{WELCOME_MESSAGE}"
-                    await welcome_channel.send(welcome_message_formatted)
+                    # Prepare specific channel mention
+                    specific_channel_mention_str = "" # Default to empty string
+                    if MENTION_CHANNEL_NAME:
+                        target_channel_obj = discord.utils.get(guild.text_channels, name=MENTION_CHANNEL_NAME)
+                        if target_channel_obj:
+                            specific_channel_mention_str = target_channel_obj.mention
+                        else:
+                            specific_channel_mention_str = f"#{MENTION_CHANNEL_NAME}" # Fallback to plain text
+                            print(f"{get_log_prefix()} WARNING: Channel named '{MENTION_CHANNEL_NAME}' not found in guild '{guild.name}'. Using plain text as fallback.")
+                    
+                    # Format the welcome message
+                    # This will substitute placeholders if they exist in the WELCOME_MESSAGE string.
+                    # If a placeholder (e.g., {specific_channel_mention}) isn't in the string, the extra kwarg is ignored.
+                    formatted_welcome_message = WELCOME_MESSAGE.format(
+                        member_mention=after.mention,
+                        guild_name=guild.name,
+                        specific_channel_mention=specific_channel_mention_str
+                    )
+                    await welcome_channel_obj.send(formatted_welcome_message)
                     print(f"{get_log_prefix()} Sent welcome message for {after.name} (ID: {after.id}) to channel ID {WELCOME_CHANNEL_ID}.")
                 except discord.Forbidden:
                     print(f"{get_log_prefix()} ERROR: Bot lacks permission to send messages to welcome channel ID {WELCOME_CHANNEL_ID}.")
@@ -183,11 +205,14 @@ async def on_member_remove(member: discord.Member):
     # If a member leaves or is kicked, and they were already verified, send a goodbye message.
     if member.id not in pending_verification_tasks:
         if WELCOME_CHANNEL_ID != 0:
-            welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
-            if welcome_channel and isinstance(welcome_channel, discord.TextChannel):
+            goodbye_channel_obj = guild.get_channel(WELCOME_CHANNEL_ID)
+            if goodbye_channel_obj and isinstance(goodbye_channel_obj, discord.TextChannel):
                 try:
-                    goodbye_message_formatted = f"{GOODBYE_MESSAGE}"
-                    await welcome_channel.send(goodbye_message_formatted)
+                    formatted_goodbye_message = GOODBYE_MESSAGE.format(
+                        member_name=member.display_name, # Using display_name for a more friendly name
+                        guild_name=guild.name
+                    )
+                    await goodbye_channel_obj.send(formatted_goodbye_message)
                     print(f"{get_log_prefix()} Sent goodbye message for {member.name} (ID: {member.id}) to channel ID {WELCOME_CHANNEL_ID}.")
                 except discord.Forbidden:
                     print(f"{get_log_prefix()} ERROR: Bot lacks permission to send messages to welcome channel ID {WELCOME_CHANNEL_ID}.")
