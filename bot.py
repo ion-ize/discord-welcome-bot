@@ -180,10 +180,22 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 @client.event
 async def on_member_remove(member: discord.Member):
     guild = member.guild
+    # --- New logic to check for verified role ---
+    verified_role = discord.utils.get(guild.roles, name=VERIFIED_ROLE_NAME)
+    member_was_verified = verified_role and verified_role in member.roles # Check if the member had the verified role
 
-    if member.id not in pending_verification_tasks:
+    if member.id in pending_verification_tasks:
+        task = pending_verification_tasks.pop(member.id, None)
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            print(f"{get_log_prefix()} Member {member.name}#{member.discriminator} (ID: {member.id}) left/was kicked. Cancelled their pending verification task.")
+    # --- Only send goodbye message if the member was verified AND WELCOME_CHANNEL_ID is set ---
+    elif member_was_verified: # Added this condition
         if WELCOME_CHANNEL_ID != 0:
-            # Use a consistent name for the channel object, e.g., target_goodbye_channel
             target_goodbye_channel = guild.get_channel(WELCOME_CHANNEL_ID)
             if target_goodbye_channel and isinstance(target_goodbye_channel, discord.TextChannel):
                 try:
@@ -201,16 +213,8 @@ async def on_member_remove(member: discord.Member):
                 print(f"{get_log_prefix()} ERROR: Channel ID {WELCOME_CHANNEL_ID} not found or is not a text channel for goodbye message.")
         else:
             print(f"{get_log_prefix()} Welcome channel ID not configured. Skipping goodbye message for {member.display_name} (ID: {member.id}).")
-
-    if member.id in pending_verification_tasks:
-        task = pending_verification_tasks.pop(member.id, None)
-        if task:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
-            print(f"{get_log_prefix()} Member {member.name}#{member.discriminator} (ID: {member.id}) left/was kicked. Cancelled their pending verification task.")
+    else: # This else block handles members who left but were not verified
+        print(f"{get_log_prefix()} Member {member.name}#{member.discriminator} (ID: {member.id}) left and was not verified. Skipping goodbye message.")
 
 
 # --- Main Execution ---
