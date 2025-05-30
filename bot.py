@@ -19,6 +19,9 @@ MENTION_CHANNEL_NAME = os.getenv('MENTION_CHANNEL_NAME', None) # Name of a speci
 # Example GOODBYE_MESSAGE: "{member_name} has left {guild_name}."
 GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '{member_name} just left {guild_name}.')
 
+# Bot status
+BOT_STATUS_MESSAGE = os.getenv('BOT_STATUS_MESSAGE', 'Monitoring new members') # Default status message
+
 # --- Bot Setup ---
 intents = discord.Intents.default()
 intents.members = True  # Required to receive member join/update events and access member.created_at
@@ -96,9 +99,9 @@ async def on_ready():
     if MENTION_CHANNEL_NAME:
         print(f"{get_log_prefix()} Will attempt to mention channel '{MENTION_CHANNEL_NAME}' in welcome messages if placeholder is used.")
 
-    # Set bot's online status and activity
-    await client.change_presence(activity=discord.Game(name="Monitoring new members"), status=discord.Status.online)
-    print(f"{get_log_prefix()} Bot status set to Online with activity 'Monitoring new members'.")
+    # Set bot's online status and activity using the environment variable
+    await client.change_presence(activity=discord.Game(name=BOT_STATUS_MESSAGE), status=discord.Status.online)
+    print(f"{get_log_prefix()} Bot status set to Online with activity '{BOT_STATUS_MESSAGE}'.")
 
 
 @client.event
