@@ -100,6 +100,8 @@ Our final thing to do is run the script:
 ```python3 bot.py```
 
 ## Windows
-You can download the latest python release from [here](https://www.python.org/downloads/windows/). We now want to download and extract this repository. 
+You can download the latest python release from [here](https://www.python.org/downloads/windows/). 
 
-After extracting, you can navigate into the folder and just double-click the file.
+We now want to download and extract this repository. 
+
+After extracting, you can navigate into the folder and just double-click the bot.py file or run the following command in a terminal window ```python .\bot.py```.
