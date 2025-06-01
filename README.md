@@ -18,6 +18,27 @@ Go to the [Discord Developer Portal](https://discord.com/developers/applications
 # Before we begin
 As mentioned above, this is ideally run inside a docker container on a host server to ensure the bot is always running, but this can be run locally as well. See [here](#docker-instructions) for the docker instructions.
 
+### Environment Variables
+This will use the default environment variables and will not work natively due to missing the bot API token. The following parameters are available to be set:
+- DISCORD_BOT_TOKEN - The API token of the bot from the [Discord Developer Portal](https://discord.com/developers/applications).
+- WELCOME_CHANNEL_ID - The channel ID of the desired discord channel that will have the different messages sent into it.
+- VERIFIED_ROLE_NAME - The name of the role used to check user verification.
+- VERIFICATION_TIMEOUT_SECONDS - The time in seconds after witch to kick a user if they did not become verified. This defaults to 300 seconds (5 minutes) if no value is set.
+- MIN_ACCOUNT_AGE_DAYS - The minimum account age required to join the server. This is not the persons age but rather how long it has been since they created their discord account.
+- WELCOME_MESSAGE - The welcome message to send in the specified channel. The following variables are accepted: {member_mention}, {guild_name}, and {specific_channel_mention}. Discord formatting is process for an example message would be:
+```Welcome {member_mention} to **{guild_name}**! Please check out {specific_channel_mention}!```
+- GOODBYE_MESSAGE - The goodbye message to send in the specified channel. The following variables are accepted: {member_name}, and {guild_name}. Same as above, discord formatting is accepted, here is an example:
+```**{member_name}** just left **{guild_name}**.```
+- MENTION_CHANNEL_NAME - The name of the specific channel to mention if you use this in your welcome message. This is the plain text name not the channel ID since it will output the plain text channel name if the channel could not be mentioned.
+- BOT_STATUS_MESSAGE - The status message to have the bot display, for fun.
+- OFFLINE_CATCHUP_WINDOW_SECONDS - This is the default catchup window that the bot will look back to check for events prior to starting if no last online status was saved. This will default to VERIFICATION_TIMEOUT_SECONDS * 2.
+- BATCH_WELCOME_MESSAGE - The batch welcome message to send in the specified channel if multiple users joined and became verfified while the bot was offline. The following variables are accepted: {member_mentions_list}, {guild_name}, and {specific_channel_mention}. Discord formatting is process for an example message would be:
+```While the bot was offline, the following members joined: **{member_mentions_list}**, welcome to **{guild_name}**!```
+- BATCH_GOODBYE_MESSAGE - The batch goodbye message to send in the specified channel if multiple users that were verfified left while the bot was offline. The following variables are accepted: {member_names_list}. Discord formatting is process for an example message would be:
+```While the bot was offline, the following members left: **{member_names_list}**.```
+
+While you can hard code these variables into the bot script, that is not ideal, especially with the API token.
+
 # Easy: How to install the hole-welcome-bot on a home computer:
 Make sure that you've installed Python 3.6 or higher before beginning this.
 
@@ -59,18 +80,8 @@ The image will now be listed by Docker. You can confirm this by running:
 
 ```docker create --name hole-welcome-bot hole-welcome-bot```
 
-This will use the default environment variables and will not work natively due to missing the bot API token. To create this with the enviroment variables you will need to specific the designed -e parameters, for example:
-```
--e 'WELCOME_CHANNEL_ID'='[channel id here]'
--e 'VERIFIED_ROLE_NAME'='verified'
--e 'VERIFICATION_TIMEOUT_SECONDS'='600'
--e 'MIN_ACCOUNT_AGE_DAYS'='90'
--e 'WELCOME_MESSAGE'='Welcome {member_mention} to **{guild_name}**! Please check out {specific_channel_mention}!'
--e 'GOODBYE_MESSAGE'='**{member_name}** just left **{guild_name}**.'
--e 'DISCORD_BOT_TOKEN'='[Bot API token here]'
--e 'MENTION_CHANNEL_NAME'='[specific channel name here]'
--e 'BOT_STATUS_MESSAGE'='[bot status message here]'
-```
+Please set up the environment variables listed above [here](#environment-variables) on your docker container for this bot to properly run.
+
 See the docker documentation [here](https://docs.docker.com/reference/cli/docker/container/run/#env) for more details on setting those environment variables up.
 
 ### Run the image
