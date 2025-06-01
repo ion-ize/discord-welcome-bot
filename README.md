@@ -1,5 +1,5 @@
 # Welcome Bot
-This is a bot that is built with python using the discord python module and is designed to be run inside of a docker container. This bot only makes outbound network connections so it can be self hosted without much concern.
+This is a discord bot that is built with python using the discord python module and is designed to be run inside of a docker container. This bot only makes outbound network connections so it can be self hosted without much concern.
 
 # Features:
 
@@ -13,9 +13,12 @@ This is a bot that is built with python using the discord python module and is d
 On our server we use this bot in tandom with the MEE6 bot that runs the actual verification process. This should work with any other verification bot as long as there is a role added to a user as part of the verification that you specify in an environment variable. This bot does not process verifications on its own.
 
 # Intents
-Go to the Discord Developer Portal and select your bot. Now move to the bot tab and scroll down. There you should see Priveledged Gateway Intents. Enable the Members intent. Enable Members Intent
+Go to the [Discord Developer Portal](https://discord.com/developers/applications) and select your bot. Now move to the bot tab and scroll down. There you should see ```Priveledged Gateway Intents```. Enable all of the intents listed.
 
-# Easy: How to install the welcome-bot on a home computer:
+# Before we begin
+As mentioned above, this is ideally run inside a docker container on a host server to ensure the bot is always running, but this can be run locally as well. See [here](#docker-instructions) for the docker instructions.
+
+# Easy: How to install the hole-welcome-bot on a home computer:
 Make sure that you've installed Python 3.6 or higher before beginning this.
 
 # Linux
@@ -41,7 +44,8 @@ You can download the latest python release from [here](https://www.python.org/do
 
 After extracting, you can navigate into the folder and just double-click the file.
 
-# Advanced: How to install the welcome-bot as a docker container on a linux server
+# Docker Instructions
+## How to install the hole-welcome-bot as a docker container on a linux server
 ### Building the image
 Copy the folder containing the Dockerfile onto the server. Go to the directory that has the Dockerfile and run the following command to build the Docker image from the source code:
 
@@ -55,7 +59,7 @@ The image will now be listed by Docker. You can confirm this by running:
 
 ```docker create --name hole-welcome-bot hole-welcome-bot```
 
-This will use the default environment variables and will not work natively. To create this with the enviroment variables you will need to specific the designed -e parameters, for example:
+This will use the default environment variables and will not work natively due to missing the bot API token. To create this with the enviroment variables you will need to specific the designed -e parameters, for example:
 ```
 -e 'WELCOME_CHANNEL_ID'='[channel id here]'
 -e 'VERIFIED_ROLE_NAME'='verified'
@@ -67,5 +71,7 @@ This will use the default environment variables and will not work natively. To c
 -e 'MENTION_CHANNEL_NAME'='[specific channel name here]'
 -e 'BOT_STATUS_MESSAGE'='[bot status message here]'
 ```
+See the docker documentation [here](https://docs.docker.com/reference/cli/docker/container/run/#env) for more details on setting those environment variables up.
+
 ### Run the image
 ```docker run hole-welcome-bot```
