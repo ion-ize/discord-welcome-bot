@@ -17,14 +17,17 @@ COPY bot.py .
 
 # Set environment variables (these will be overridden by docker run -e flags)
 # It's good practice to set defaults or placeholders here if any.
+# DISCORD_BOT_TOKEN should NOT be hardcoded here. It must be provided at runtime.
 ENV WELCOME_CHANNEL_ID="0"
 ENV VERIFIED_ROLE_NAME="verified"
 ENV VERIFICATION_TIMEOUT_SECONDS="300"
 ENV MIN_ACCOUNT_AGE_DAYS="90"
-ENV BOT_STATUS_MESSAGE=""
-ENV WELCOME_MESSAGE="Welcome {member_mention} to {guild_name}!"
-ENV GOODBYE_MESSAGE="{member_name} just left {guild_name}."
-# DISCORD_BOT_TOKEN should NOT be hardcoded here. It must be provided at runtime.
+ENV BOT_STATUS_MESSAGE="Watching for new members..."
+ENV OFFLINE_CATCHUP_WINDOW_SECONDS="1200"
+ENV WELCOME_MESSAGE="Welcome {member_mention} to **{guild_name}**! Please check out {specific_channel_mention}!"
+ENV GOODBYE_MESSAGE="**{member_name}** just left **{guild_name}**."
+ENV BATCH_WELCOME_MESSAGE="While the bot was offline, the following members joined: **{member_mentions_list}**, welcome to **{guild_name}**!"
+ENV BATCH_GOODBYE_MESSAGE="While the bot was offline, the following members left: **{member_names_list}**."
 
 # Inform Docker that the container listens on a specific port (optional, informational)
 # For a Discord bot, it doesn't listen on a port for incoming HTTP, but connects outbound.
