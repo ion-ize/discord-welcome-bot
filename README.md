@@ -10,7 +10,7 @@ This is a discord bot that is built with python using the discord python module 
 
 # Additional Note(s): 
 
-On our server we use this bot in tandom with the MEE6 bot that runs the actual verification process. This should work with any other verification bot as long as there is a role added to a user as part of the verification that you specify in an environment variable. This bot does not process verifications on its own.
+On our server we use this bot in tandom with the [MEE6 bot](https://mee6.xyz/) that runs the actual verification process. This should work with any other verification bot as long as there is a role added to a user as part of the verification that you specify in an environment variable. This bot does not process verifications on its own.
 
 # Intents
 Go to the [Discord Developer Portal](https://discord.com/developers/applications) and select your bot. Now move to the bot tab and scroll down. There you should see ```Priveledged Gateway Intents```. Enable all of the intents listed.
