@@ -1,4 +1,4 @@
-# Welcome Bot
+# Discord Welcome Bot
 This is a discord bot that is built with python using the discord python module and is designed to be run inside of a docker container. This bot only makes outbound network connections so it can be self hosted without much concern.
 
 # Features:
@@ -46,8 +46,8 @@ Make sure that you've installed Python 3.6 or higher before beginning this.
 First, we want to clone the repository using git clone:
 
 ```
-git clone https://github.com/ion-ize/hole-welcome-bot.git
-cd hole-welcome-bot
+git clone https://github.com/ion-ize/discord-welcome-bot.git
+cd discord-welcome-bot
 ```
 
 Secondly, we want to make sure python is installed on your os. This varies by distribution so I won't list instructions for that here.
@@ -68,9 +68,15 @@ After extracting, you can navigate into the folder and just double-click the fil
 # Docker Instructions
 ## How to install the hole-welcome-bot as a docker container on a linux server
 ### Building the image
-Copy the folder containing the Dockerfile onto the server. Go to the directory that has the Dockerfile and run the following command to build the Docker image from the source code:
+Clone the repository onto the docker host in your desired location:
+```
+git clone https://github.com/ion-ize/discord-welcome-bot.git
+cd discord-welcome-bot
+```
 
-```docker build -t hole-welcome-bot .```
+Run the following command to build the Docker image from the source code:
+
+```docker build -t discord-welcome-bot .```
 
 The image will now be listed by Docker. You can confirm this by running:
 
@@ -78,11 +84,11 @@ The image will now be listed by Docker. You can confirm this by running:
 
 ### Create a writeable container from the image
 
-```docker create --name hole-welcome-bot hole-welcome-bot```
+```docker create --name discord-welcome-bot discord-welcome-bot```
 
 Please set up the environment variables listed above [here](#environment-variables) on your docker container for this bot to properly run.
 
 See the docker documentation [here](https://docs.docker.com/reference/cli/docker/container/run/#env) for more details on setting those environment variables up.
 
 ### Run the image
-```docker run hole-welcome-bot```
+```docker run discord-welcome-bot```
