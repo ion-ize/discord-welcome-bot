@@ -10,6 +10,7 @@ WELCOME_CHANNEL_ID = int(os.getenv('WELCOME_CHANNEL_ID', '0'))
 VERIFIED_ROLE_NAME = os.getenv('VERIFIED_ROLE_NAME', 'verified')
 VERIFICATION_TIMEOUT_SECONDS = int(os.getenv('VERIFICATION_TIMEOUT_SECONDS', '600')) # 10 minutes
 MIN_ACCOUNT_AGE_DAYS = int(os.getenv('MIN_ACCOUNT_AGE_DAYS', '90'))
+# OFFLINE_CATCHUP_WINDOW_SECONDS will now act as a fallback/maximum if last_online_time is very old or not found
 OFFLINE_CATCHUP_WINDOW_SECONDS = int(os.getenv('OFFLINE_CATCHUP_WINDOW_SECONDS', VERIFICATION_TIMEOUT_SECONDS * 2))
 MENTION_CHANNEL_NAME = os.getenv('MENTION_CHANNEL_NAME', None)
 BOT_STATUS_MESSAGE = os.getenv('BOT_STATUS_MESSAGE', 'Monitoring new members')
@@ -30,6 +31,12 @@ def init_db():
             member_id INTEGER NOT NULL,
             verified_at TEXT NOT NULL,
             PRIMARY KEY (guild_id, member_id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bot_status (
+            id INTEGER PRIMARY KEY,
+            last_online_time TEXT NOT NULL
         )
     ''')
     conn.commit()
@@ -100,6 +107,38 @@ def get_all_verified_member_ids_from_db(guild_id: int) -> list[int]:
     finally:
         conn.close()
     return member_ids
+
+def get_last_online_time() -> datetime | None:
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    last_online_time = None
+    try:
+        cursor.execute('SELECT last_online_time FROM bot_status WHERE id = 1')
+        row = cursor.fetchone()
+        if row:
+            last_online_time = datetime.fromisoformat(row[0])
+            print(f"{get_log_prefix()} Retrieved last online time from DB: {last_online_time}")
+    except sqlite3.Error as e:
+        print(f"{get_log_prefix()} DB_ERROR retrieving last online time: {e}")
+    finally:
+        conn.close()
+    return last_online_time
+
+def update_last_online_time():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    current_time = datetime.now(timezone.utc).isoformat()
+    try:
+        cursor.execute('''
+            INSERT OR REPLACE INTO bot_status (id, last_online_time)
+            VALUES (1, ?)
+        ''', (current_time,))
+        conn.commit()
+        print(f"{get_log_prefix()} Updated last online time in DB to: {current_time}")
+    except sqlite3.Error as e:
+        print(f"{get_log_prefix()} DB_ERROR updating last online time: {e}")
+    finally:
+        conn.close()
 
 # --- Bot Setup ---
 intents = discord.Intents.default()
@@ -183,8 +222,22 @@ async def on_ready():
     if WELCOME_CHANNEL_ID == 0: print(f"{get_log_prefix()} WARNING: WELCOME_CHANNEL_ID is not set.")
     if not VERIFIED_ROLE_NAME: print(f"{get_log_prefix()} WARNING: VERIFIED_ROLE_NAME is not set.")
 
-    print(f"{get_log_prefix()} Starting offline member catch-up process...")
-    now = datetime.now(timezone.utc)
+    # Get last online time from DB
+    last_online_db_time = get_last_online_time()
+    current_time = datetime.now(timezone.utc)
+    
+    # Determine the start of the catch-up window
+    # If last_online_db_time is available, use it. Otherwise, use current time minus OFFLINE_CATCHUP_WINDOW_SECONDS
+    catchup_start_time = current_time - timedelta(seconds=OFFLINE_CATCHUP_WINDOW_SECONDS)
+    if last_online_db_time:
+        # Use the later of (last_online_db_time) or (current_time - OFFLINE_CATCHUP_WINDOW_SECONDS)
+        # This ensures we don't try to catch up on an excessively long period if the bot was offline for a very long time
+        catchup_start_time = max(last_online_db_time, catchup_start_time)
+        print(f"{get_log_prefix()} Using last online time from DB ({last_online_db_time}) for catch-up.")
+    else:
+        print(f"{get_log_prefix()} No last online time found in DB. Using fallback catch-up window of {OFFLINE_CATCHUP_WINDOW_SECONDS} seconds.")
+
+    print(f"{get_log_prefix()} Starting offline member catch-up process for events since: {catchup_start_time} UTC")
 
     for guild in client.guilds:
         print(f"{get_log_prefix()} Processing guild: {guild.name} (ID: {guild.id})")
@@ -225,36 +278,45 @@ async def on_ready():
                 # If they have the role, ensure they are in the DB and consider for batch welcome
                 print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) has verified role. Ensuring DB record and checking for offline welcome.")
                 mark_member_verified_in_db(guild.id, member.id)
-                if member.joined_at: # Check if they joined recently while bot was offline
-                    time_since_joined = now - member.joined_at
-                    if time_since_joined.total_seconds() <= OFFLINE_CATCHUP_WINDOW_SECONDS:
-                        verified_during_downtime_members_to_welcome.append(member)
+                # Only add to welcome list if they joined *after* the bot was last online
+                if member.joined_at and member.joined_at.astimezone(timezone.utc) >= catchup_start_time:
+                    verified_during_downtime_members_to_welcome.append(member)
                 continue # Skip all other checks for this member as they are already verified.
 
             # If they don't have the verified role, proceed with age check and timeout
-            account_age = now - member.created_at
-            if account_age.days < MIN_ACCOUNT_AGE_DAYS:
-                try:
-                    # Re-fetch to ensure member is still present before kicking
-                    await guild.fetch_member(member.id) 
-                    age_kick_reason = f"Account too new (created {account_age.days} days ago, min {MIN_ACCOUNT_AGE_DAYS} days). Found during catch-up."
-                    print(f"{get_log_prefix()} Kicking member {member.name} (ID: {member.id}) for age during catch-up.")
-                    await kick_member(member, age_kick_reason)
-                except discord.NotFound:
-                    print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) for age check already left.")
-                except Exception as e:
-                     print(f"{get_log_prefix()} Error during age kick for {member.name} (ID: {member.id}): {e}")
-                continue # Move to next member if kicked or already left
+            account_age = current_time - member.created_at
+            
+            # Check if member joined while bot was offline AND if their account age is too new
+            if member.joined_at and member.joined_at.astimezone(timezone.utc) >= catchup_start_time:
+                if account_age.days < MIN_ACCOUNT_AGE_DAYS:
+                    try:
+                        # Re-fetch to ensure member is still present before kicking
+                        await guild.fetch_member(member.id) 
+                        age_kick_reason = f"Account too new (created {account_age.days} days ago, min {MIN_ACCOUNT_AGE_DAYS} days). Found during catch-up."
+                        print(f"{get_log_prefix()} Kicking member {member.name} (ID: {member.id}) for age during catch-up.")
+                        await kick_member(member, age_kick_reason)
+                    except discord.NotFound:
+                        print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) for age check already left.")
+                    except Exception as e:
+                         print(f"{get_log_prefix()} Error during age kick for {member.name} (ID: {member.id}): {e}")
+                    continue # Move to next member if kicked or already left
 
-            if member.joined_at:
-                time_since_joined = now - member.joined_at
-                if time_since_joined.total_seconds() <= OFFLINE_CATCHUP_WINDOW_SECONDS and member.id not in pending_verification_tasks:
-                    # This member joined offline and does NOT have the verified role
+                # If they are not verified, but also not too young, and joined while offline, schedule a check
+                if member.id not in pending_verification_tasks:
+                    time_since_joined = current_time - member.joined_at.astimezone(timezone.utc)
                     remaining_time = VERIFICATION_TIMEOUT_SECONDS - time_since_joined.total_seconds()
-                    print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) joined offline, not verified. Remaining time: {remaining_time:.1f}s.")
-                    if member.id in pending_verification_tasks: continue
-                    task = asyncio.create_task(kick_if_not_verified(member, initial_delay_seconds=remaining_time))
-                    pending_verification_tasks[member.id] = task
+                    
+                    if remaining_time > 0:
+                        print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) joined offline, not verified. Scheduling check. Remaining time: {remaining_time:.1f}s.")
+                        task = asyncio.create_task(kick_if_not_verified(member, initial_delay_seconds=remaining_time))
+                        pending_verification_tasks[member.id] = task
+                    else:
+                        # If remaining_time is 0 or negative, kick immediately if not verified
+                        print(f"{get_log_prefix()} Member {member.name} (ID: {member.id}) joined offline, not verified, and verification timeout already passed.")
+                        await kick_if_not_verified(member, initial_delay_seconds=0) # Perform immediate check
+            else:
+                # Member joined while bot was online, or before catch-up window, and is not verified, so no action needed here.
+                pass 
         
         # --- Send Batch Welcome for current members verified during downtime ---
         if WELCOME_CHANNEL_ID != 0 and verified_during_downtime_members_to_welcome:
@@ -322,6 +384,7 @@ async def on_ready():
             else: print(f"{get_log_prefix()} WARNING: Goodbye channel {WELCOME_CHANNEL_ID} not found in {guild.name} for offline leavers.")
 
     print(f"{get_log_prefix()} Offline member catch-up finished.")
+    update_last_online_time() # Update last online time after catch-up
 
 @client.event
 async def on_member_join(member: discord.Member):
