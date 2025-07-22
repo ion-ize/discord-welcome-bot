@@ -15,9 +15,6 @@ On our server we use this bot in tandom with the [MEE6 bot](https://mee6.xyz/) t
 # Intents
 Go to the [Discord Developer Portal](https://discord.com/developers/applications) and select your bot. Now move to the bot tab and scroll down. There you should see ```Priveledged Gateway Intents```. Enable all of the intents listed.
 
-# Before we begin
-As mentioned above, this is ideally run inside a docker container on a host server to ensure the bot is always running, but this can be run locally as well. See [here](#docker-instructions) for the docker instructions.
-
 ### Environment Variables
 This will use the default environment variables and will not work natively due to missing the bot API token. The following parameters are available to be set:
 - DISCORD_BOT_TOKEN
@@ -56,34 +53,8 @@ This will use the default environment variables and will not work natively due t
 
 While you can hard code these variables into the bot script, that is not ideal, especially with the API token.
 
-# Easy: How to install the hole-welcome-bot on a home computer:
-Make sure that you've installed Python 3.6 or higher before beginning this.
-
-# Linux
-First, we want to clone the repository using git clone:
-
-```
-git clone https://github.com/ion-ize/discord-welcome-bot.git
-cd discord-welcome-bot
-```
-
-Secondly, we want to make sure python is installed on your os. This varies by distribution so I won't list instructions for that here.
-
-Next, we will install all of the requirements:
-
-```pip install -r requirments.txt```
-
-Our final thing to do is run the script:
-
-```python3 bot.py```
-
-# Windows
-You can download the latest python release from [here](https://www.python.org/downloads/windows/). We now want to download and extract this repository. 
-
-After extracting, you can navigate into the folder and just double-click the file.
-
 # Docker Instructions
-## How to install the hole-welcome-bot as a docker container on a linux server
+## Install the hole-welcome-bot as a docker container on a linux server
 ### Building the image
 Clone the repository onto the docker host in your desired location:
 ```
@@ -109,3 +80,33 @@ See the docker documentation [here](https://docs.docker.com/reference/cli/docker
 
 ### Run the image
 ```docker run discord-welcome-bot```
+
+# Local install instructions
+As mentioned above, this is ideally run inside a docker container on a host server to ensure the bot is always running, but this can be run locally as well. See [here](#docker-instructions) for the docker instructions.
+
+Make sure that you've installed Python 3.6 or higher before beginning this.
+
+## Linux
+First, we want to clone the repository using git clone:
+
+```
+git clone https://github.com/ion-ize/discord-welcome-bot.git
+cd discord-welcome-bot
+```
+
+Secondly, we want to make sure python is installed on your os. This varies by distribution so I won't list instructions for that here.
+
+Next, we will install all of the requirements:
+
+```pip install -r requirments.txt```
+
+Our final thing to do is run the script:
+
+```python3 bot.py```
+
+## Windows
+You can download the latest python release from [here](https://www.python.org/downloads/windows/). 
+
+We now want to download and extract this repository. 
+
+After extracting, you can navigate into the folder and just double-click the bot.py file or run the following command in a terminal window ```python .\bot.py```.
