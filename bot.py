@@ -10,15 +10,14 @@ WELCOME_CHANNEL_ID = int(os.getenv('WELCOME_CHANNEL_ID', '0'))
 VERIFIED_ROLE_NAME = os.getenv('VERIFIED_ROLE_NAME', 'verified')
 VERIFICATION_TIMEOUT_SECONDS = int(os.getenv('VERIFICATION_TIMEOUT_SECONDS', '600')) # 10 minutes
 MIN_ACCOUNT_AGE_DAYS = int(os.getenv('MIN_ACCOUNT_AGE_DAYS', '90'))
-# OFFLINE_CATCHUP_WINDOW_SECONDS will now act as a fallback/maximum if last_online_time is very old or not found
-OFFLINE_CATCHUP_WINDOW_SECONDS = int(os.getenv('OFFLINE_CATCHUP_WINDOW_SECONDS', VERIFICATION_TIMEOUT_SECONDS * 2))
+OFFLINE_CATCHUP_WINDOW_SECONDS = int(os.getenv('OFFLINE_CATCHUP_WINDOW_SECONDS', VERIFICATION_TIMEOUT_SECONDS * 2)) # Will act as a fallback/maximum if last_online_time is very old or not found
 MENTION_CHANNEL_NAME = os.getenv('MENTION_CHANNEL_NAME', None)
 BOT_STATUS_MESSAGE = os.getenv('BOT_STATUS_MESSAGE', 'Monitoring new members')
 WELCOME_MESSAGE = os.getenv('WELCOME_MESSAGE', 'Welcome {member_mention} to **{guild_name}**!')
 BATCH_WELCOME_MESSAGE = os.getenv('BATCH_WELCOME_MESSAGE', 'While the bot was offline, the following members joined: **{member_mentions_list}**, welcome to **{guild_name}**!')
 GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '**{member_name}** just left **{guild_name}**.')
 QUICK_LEAVE_TIMEOUT_SECONDS = int(os.getenv('QUICK_LEAVE_TIMEOUT_SECONDS', '600')) # 10 minutes
-QUICK_LEAVE_GOODBYE_MESSAGE = os.getenv('QUICK_LEAVE_GOODBYE_MESSAGE', None) # Optional special message for quick leavers
+QUICK_LEAVE_GOODBYE_MESSAGE = os.getenv('QUICK_LEAVE_GOODBYE_MESSAGE', '**{member_name}** just left **{guild_name}**.') # Optional special message for quick leavers
 BATCH_GOODBYE_MESSAGE = os.getenv('BATCH_GOODBYE_MESSAGE', 'While the bot was offline, the following members left: **{member_names_list}**.')
 
 # --- Database Setup ---
