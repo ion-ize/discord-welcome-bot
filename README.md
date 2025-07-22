@@ -42,6 +42,11 @@ This will use the default environment variables and will not work natively due t
 - GOODBYE_MESSAGE
   - The goodbye message to send in the specified channel. The following variables are accepted: {member_name}, and {guild_name}. Same as above, discord formatting is accepted, here is an example message:
 ```**{member_name}** just left **{guild_name}**.```
+- QUICK_LEAVE_TIMEOUT_SECONDS
+  - The time in seconds after a user joins that a special goodbye message will be used if they leave. This defaults to 600 seconds (10 minutes) if no value is set.
+- QUICK_LEAVE_GOODBYE_MESSAGE
+  - The special goodbye message to send if a user leaves within the `QUICK_LEAVE_TIMEOUT_SECONDS` window. If this is not set, the standard `GOODBYE_MESSAGE` will always be used. It accepts the same variables as `GOODBYE_MESSAGE`. Here is an example:
+```**{member_name}** just left **{guild_name}**. https://tenor.com/view/grandpa-abe-exit-confused-bye-bart-gif-7694184```
 - BATCH_WELCOME_MESSAGE
   - The batch welcome message to send in the specified channel if multiple users joined and became verfified while the bot was offline. The following variables are accepted: {member_mentions_list}, {guild_name}, and {specific_channel_mention}. Discord formatting is processed, here is an example message:
 ```While the bot was offline, the following members joined: **{member_mentions_list}**, welcome to **{guild_name}**!```

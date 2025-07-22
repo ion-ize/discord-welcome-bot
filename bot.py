@@ -17,6 +17,8 @@ BOT_STATUS_MESSAGE = os.getenv('BOT_STATUS_MESSAGE', 'Monitoring new members')
 WELCOME_MESSAGE = os.getenv('WELCOME_MESSAGE', 'Welcome {member_mention} to **{guild_name}**!')
 BATCH_WELCOME_MESSAGE = os.getenv('BATCH_WELCOME_MESSAGE', 'While the bot was offline, the following members joined: **{member_mentions_list}**, welcome to **{guild_name}**!')
 GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '**{member_name}** just left **{guild_name}**.')
+QUICK_LEAVE_TIMEOUT_SECONDS = int(os.getenv('QUICK_LEAVE_TIMEOUT_SECONDS', '600')) # 10 minutes
+QUICK_LEAVE_GOODBYE_MESSAGE = os.getenv('QUICK_LEAVE_GOODBYE_MESSAGE', None) # Optional special message for quick leavers
 BATCH_GOODBYE_MESSAGE = os.getenv('BATCH_GOODBYE_MESSAGE', 'While the bot was offline, the following members left: **{member_names_list}**.')
 
 # --- Database Setup ---
@@ -476,9 +478,18 @@ async def on_member_remove(member: discord.Member):
             target_goodbye_channel = guild.get_channel(WELCOME_CHANNEL_ID)
             if target_goodbye_channel and isinstance(target_goodbye_channel, discord.TextChannel):
                 try:
-                    formatted_goodbye_message = GOODBYE_MESSAGE.format(member_name=member.display_name, guild_name=guild.name)
+                    # Check if the member left shortly after joining
+                    time_in_server = datetime.now(timezone.utc) - member.joined_at.astimezone(timezone.utc)
+                    goodbye_message_template = GOODBYE_MESSAGE
+                    log_reason = "standard leave"
+
+                    if QUICK_LEAVE_GOODBYE_MESSAGE and time_in_server.total_seconds() < QUICK_LEAVE_TIMEOUT_SECONDS:
+                        goodbye_message_template = QUICK_LEAVE_GOODBYE_MESSAGE
+                        log_reason = "quick leave"
+
+                    formatted_goodbye_message = goodbye_message_template.format(member_name=member.display_name, guild_name=guild.name)
                     await target_goodbye_channel.send(formatted_goodbye_message)
-                    print(f"{get_log_prefix()} Sent goodbye for verified member {member.display_name} (ID: {member_id}) (on_member_remove).")
+                    print(f"{get_log_prefix()} Sent {log_reason} goodbye for verified member {member.display_name} (ID: {member_id}) (on_member_remove).")
                 except Exception as e: print(f"{get_log_prefix()} ERROR sending goodbye (on_member_remove) for {member.display_name}: {e}")
             else: print(f"{get_log_prefix()} ERROR: Goodbye channel {WELCOME_CHANNEL_ID} not found for {member.display_name}.")
         else: print(f"{get_log_prefix()} Welcome channel ID not configured, skipping goodbye for {member.display_name}.")
