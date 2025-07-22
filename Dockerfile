@@ -26,6 +26,8 @@ ENV BOT_STATUS_MESSAGE="Watching for new members..."
 ENV OFFLINE_CATCHUP_WINDOW_SECONDS="1200"
 ENV WELCOME_MESSAGE="Welcome {member_mention} to **{guild_name}**! Please check out {specific_channel_mention}!"
 ENV GOODBYE_MESSAGE="**{member_name}** just left **{guild_name}**."
+ENV QUICK_LEAVE_TIMEOUT_SECONDS="600"
+ENV QUICK_LEAVE_GOODBYE_MESSAGE="**{member_name}** just left **{guild_name}**."
 ENV BATCH_WELCOME_MESSAGE="While the bot was offline, the following members joined: **{member_mentions_list}**, welcome to **{guild_name}**!"
 ENV BATCH_GOODBYE_MESSAGE="While the bot was offline, the following members left: **{member_names_list}**."
 
