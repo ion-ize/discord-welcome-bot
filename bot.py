@@ -1,6 +1,7 @@
 import discord
 import os
 import asyncio
+import random
 import sqlite3 # For persistent storage
 from datetime import datetime, timedelta, timezone
 
@@ -17,6 +18,8 @@ WELCOME_MESSAGE = os.getenv('WELCOME_MESSAGE', 'Welcome {member_mention} to **{g
 BATCH_WELCOME_MESSAGE = os.getenv('BATCH_WELCOME_MESSAGE', 'While the bot was offline, the following members joined: **{member_mentions_list}**, welcome to **{guild_name}**!')
 GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '**{member_name}** just left **{guild_name}**.')
 QUICK_LEAVE_TIMEOUT_SECONDS = int(os.getenv('QUICK_LEAVE_TIMEOUT_SECONDS', '600')) # 10 minutes
+RANDOMIZE_GOODBYE_MESSAGES = os.getenv('RANDOMIZE_GOODBYE_MESSAGES', 'false').lower() == 'true'
+GOODBYE_MESSAGES_LIST = [msg.strip() for msg in os.getenv('GOODBYE_MESSAGES_LIST', '').split(';;') if msg.strip()]
 QUICK_LEAVE_GOODBYE_MESSAGE = os.getenv('QUICK_LEAVE_GOODBYE_MESSAGE', '**{member_name}** just left **{guild_name}**.') # Optional special message for quick leavers
 BATCH_GOODBYE_MESSAGE = os.getenv('BATCH_GOODBYE_MESSAGE', 'While the bot was offline, the following members left: **{member_names_list}**.')
 
@@ -478,14 +481,20 @@ async def on_member_remove(member: discord.Member):
             if target_goodbye_channel and isinstance(target_goodbye_channel, discord.TextChannel):
                 try:
                     # Check if the member left shortly after joining
-                    time_in_server = datetime.now(timezone.utc) - member.joined_at.astimezone(timezone.utc)
-                    goodbye_message_template = GOODBYE_MESSAGE
+                    time_in_server = datetime.now(timezone.utc) - member.joined_at.astimezone(timezone.utc) if member.joined_at else timedelta.max
                     log_reason = "standard leave"
 
-                    if QUICK_LEAVE_GOODBYE_MESSAGE and time_in_server.total_seconds() < QUICK_LEAVE_TIMEOUT_SECONDS:
+                    # Determine which message template to use
+                    if QUICK_LEAVE_GOODBYE_MESSAGE and time_in_server.total_seconds() <= QUICK_LEAVE_TIMEOUT_SECONDS:
                         goodbye_message_template = QUICK_LEAVE_GOODBYE_MESSAGE
                         log_reason = "quick leave"
-
+                    elif RANDOMIZE_GOODBYE_MESSAGES and GOODBYE_MESSAGES_LIST:
+                        goodbye_message_template = random.choice(GOODBYE_MESSAGES_LIST)
+                        log_reason = "random leave"
+                    else:
+                        goodbye_message_template = GOODBYE_MESSAGE
+                        log_reason = "standard leave"
+                    
                     formatted_goodbye_message = goodbye_message_template.format(member_name=member.display_name, guild_name=guild.name)
                     await target_goodbye_channel.send(formatted_goodbye_message)
                     print(f"{get_log_prefix()} Sent {log_reason} goodbye for verified member {member.display_name} (ID: {member_id}) (on_member_remove).")
