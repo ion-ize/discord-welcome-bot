@@ -19,8 +19,10 @@ BATCH_WELCOME_MESSAGE = os.getenv('BATCH_WELCOME_MESSAGE', 'While the bot was of
 GOODBYE_MESSAGE = os.getenv('GOODBYE_MESSAGE', '**{member_name}** just left **{guild_name}**.')
 QUICK_LEAVE_TIMEOUT_SECONDS = int(os.getenv('QUICK_LEAVE_TIMEOUT_SECONDS', '600')) # 10 minutes
 RANDOMIZE_GOODBYE_MESSAGES = os.getenv('RANDOMIZE_GOODBYE_MESSAGES', 'false').lower() == 'true'
+RANDOMIZE_QUICK_LEAVE_GOODBYE_MESSAGES = os.getenv('RANDOMIZE_QUICK_LEAVE_GOODBYE_MESSAGES', 'false').lower() == 'true'
 GOODBYE_MESSAGES_LIST = [msg.strip() for msg in os.getenv('GOODBYE_MESSAGES_LIST', '').split(';;') if msg.strip()]
 QUICK_LEAVE_GOODBYE_MESSAGE = os.getenv('QUICK_LEAVE_GOODBYE_MESSAGE', '**{member_name}** just left **{guild_name}**.') # Optional special message for quick leavers
+QUICK_LEAVE_GOODBYE_MESSAGES_LIST = [msg.strip() for msg in os.getenv('QUICK_LEAVE_GOODBYE_MESSAGES_LIST', '').split(';;') if msg.strip()]
 BATCH_GOODBYE_MESSAGE = os.getenv('BATCH_GOODBYE_MESSAGE', 'While the bot was offline, the following members left: **{member_names_list}**.')
 
 # --- Database Setup ---
@@ -485,7 +487,11 @@ async def on_member_remove(member: discord.Member):
                     log_reason = "standard leave"
 
                     # Determine which message template to use
-                    if QUICK_LEAVE_GOODBYE_MESSAGE and time_in_server.total_seconds() <= QUICK_LEAVE_TIMEOUT_SECONDS:
+                    is_quick_leave = time_in_server.total_seconds() <= QUICK_LEAVE_TIMEOUT_SECONDS
+                    if is_quick_leave and RANDOMIZE_QUICK_LEAVE_GOODBYE_MESSAGES and QUICK_LEAVE_GOODBYE_MESSAGES_LIST:
+                        goodbye_message_template = random.choice(QUICK_LEAVE_GOODBYE_MESSAGES_LIST)
+                        log_reason = "random quick leave"
+                    elif is_quick_leave and QUICK_LEAVE_GOODBYE_MESSAGE:
                         goodbye_message_template = QUICK_LEAVE_GOODBYE_MESSAGE
                         log_reason = "quick leave"
                     elif RANDOMIZE_GOODBYE_MESSAGES and GOODBYE_MESSAGES_LIST:
