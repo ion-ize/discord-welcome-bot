@@ -64,7 +64,7 @@ This will use the default environment variables and will not work natively due t
 While you can hard code these variables into the bot script, that is not ideal, especially with the API token.
 
 # Docker Instructions
-## Install the hole-welcome-bot as a docker container on a linux server
+## Install the discord-welcome-bot as a docker container on a linux server
 ### Building the image
 Clone the repository onto the docker host in your desired location:
 ```
